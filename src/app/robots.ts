@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
+import { siteUrl } from "@/lib/utils";
 
 export default function robots(): MetadataRoute.Robots {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://amoremio.vercel.app";
+  const base = siteUrl();
   return {
     rules: [{ userAgent: "*", allow: "/", disallow: "/panel" }],
     sitemap: `${base}/sitemap.xml`,
