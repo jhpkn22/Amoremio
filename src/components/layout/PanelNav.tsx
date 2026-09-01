@@ -67,8 +67,8 @@ const grupos: Grupo[] = [
     titulo: "Análisis",
     soloAdmin: true,
     items: [
-      { href: "/panel/inteligencia", label: "Inteligencia", icon: Sparkles, soloAdmin: true },
-      { href: "/panel/graficos", label: "Gráficos", icon: LineChart, soloAdmin: true },
+      { href: "/panel/inteligencia", label: "Inteligencia", icon: Sparkles, soloAdmin: true, listo: true },
+      { href: "/panel/graficos", label: "Gráficos", icon: LineChart, soloAdmin: true, listo: true },
       { href: "/panel/reportes", label: "Reportes", icon: BarChart3, soloAdmin: true, listo: true },
     ],
   },
