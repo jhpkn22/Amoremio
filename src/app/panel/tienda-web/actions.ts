@@ -5,15 +5,15 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { exigirUsuario } from "@/lib/auth";
 
+// "Tienda web" = piezas de muestra para la vitrina pública. No tienen stock
+// real (se preparan a pedido); el catálogo con inventario vive en "Productos".
 const productoSchema = z.object({
-  nombre: z.string().min(2, "Poné un nombre para el producto."),
+  nombre: z.string().min(2, "Poné un nombre para la pieza."),
   descripcion: z.string().optional(),
   categoria_id: z.string().uuid().nullable().optional(),
   proveedor: z.string().optional(),
   precio_venta: z.coerce.number().min(0, "El precio no puede ser negativo."),
   precio_costo: z.coerce.number().min(0).optional().nullable(),
-  stock_inicial: z.coerce.number().int().min(0).default(0),
-  stock_minimo: z.coerce.number().int().min(0).default(0),
   visible_en_vitrina: z.coerce.boolean().default(true),
   es_a_pedido: z.coerce.boolean().default(false),
   dias_demora: z.coerce.number().int().min(0).optional().nullable(),
@@ -39,7 +39,6 @@ export async function crearProducto(input: ProductoInput): Promise<ResultadoAcci
       categoria_id: datos.categoria_id || null,
       proveedor: datos.proveedor || null,
       precio_venta: datos.precio_venta,
-      stock_minimo: datos.stock_minimo,
       visible_en_vitrina: datos.visible_en_vitrina,
       es_a_pedido: datos.es_a_pedido,
       dias_demora: datos.dias_demora || null,
@@ -49,7 +48,7 @@ export async function crearProducto(input: ProductoInput): Promise<ResultadoAcci
     .single();
 
   if (error || !producto) {
-    return { ok: false, error: "No se pudo guardar el producto. " + (error?.message ?? "") };
+    return { ok: false, error: "No se pudo guardar la pieza. " + (error?.message ?? "") };
   }
 
   if (usuario.rol === "admin" && datos.precio_costo !== undefined && datos.precio_costo !== null) {
@@ -58,17 +57,7 @@ export async function crearProducto(input: ProductoInput): Promise<ResultadoAcci
       .insert({ producto_id: producto.id, precio_costo: datos.precio_costo, updated_by: usuario.id });
   }
 
-  if (datos.stock_inicial > 0) {
-    await supabase.from("movimientos_stock").insert({
-      producto_id: producto.id,
-      tipo: "entrada",
-      cantidad: datos.stock_inicial,
-      motivo: "Carga inicial",
-      usuario_id: usuario.id,
-    });
-  }
-
-  revalidatePath("/panel/stock");
+  revalidatePath("/panel/tienda-web");
   return { ok: true, id: producto.id };
 }
 
@@ -76,11 +65,8 @@ export async function actualizarProducto(id: string, input: Partial<ProductoInpu
   const { usuario } = await exigirUsuario();
   const supabase = await createClient();
 
-  // precio_costo se maneja aparte (tabla producto_costos); stock_inicial
-  // solo tiene sentido al crear — para editar el stock existe el
-  // formulario de movimientos, así que acá se descarta a propósito.
-  const { precio_costo, stock_inicial: _stockInicialIgnorado, ...resto } = input;
-  void _stockInicialIgnorado;
+  // precio_costo se maneja aparte (tabla producto_costos).
+  const { precio_costo, ...resto } = input;
 
   const { error } = await supabase
     .from("productos")
@@ -101,100 +87,9 @@ export async function actualizarProducto(id: string, input: Partial<ProductoInpu
       .upsert({ producto_id: id, precio_costo, updated_by: usuario.id }, { onConflict: "producto_id" });
   }
 
-  revalidatePath(`/panel/stock/${id}`);
-  revalidatePath("/panel/stock");
+  revalidatePath(`/panel/tienda-web/${id}`);
+  revalidatePath("/panel/tienda-web");
   return { ok: true };
-}
-
-const movimientoSchema = z.object({
-  producto_id: z.string().uuid(),
-  variante_id: z.string().uuid().nullable().optional(),
-  tipo: z.enum(["entrada", "salida", "ajuste", "devolucion"]),
-  cantidad: z.coerce.number().int().refine((n) => n !== 0, "La cantidad no puede ser 0."),
-  motivo: z.string().optional(),
-});
-
-export async function registrarMovimiento(input: z.infer<typeof movimientoSchema>): Promise<ResultadoAccion> {
-  const parsed = movimientoSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
-  const datos = parsed.data;
-
-  if (datos.tipo === "ajuste" && !datos.motivo?.trim()) {
-    return { ok: false, error: "Un ajuste manual necesita un motivo." };
-  }
-
-  const { usuario } = await exigirUsuario();
-  const supabase = await createClient();
-
-  // el signo del delta lo decide el tipo: entrada/devolución suman, salida/ajuste negativo restan.
-  // acá dejamos que quien carga el ajuste ponga el signo directo en "cantidad" para no adivinar intención.
-  const cantidad = datos.tipo === "salida" ? -Math.abs(datos.cantidad) : datos.cantidad;
-
-  const { error } = await supabase.from("movimientos_stock").insert({
-    producto_id: datos.producto_id,
-    variante_id: datos.variante_id || null,
-    tipo: datos.tipo,
-    cantidad,
-    motivo: datos.motivo || null,
-    usuario_id: usuario.id,
-  });
-
-  if (error) return { ok: false, error: "No se pudo registrar el movimiento. " + error.message };
-
-  revalidatePath(`/panel/stock/${datos.producto_id}`);
-  revalidatePath("/panel/stock");
-  return { ok: true };
-}
-
-const varianteSchema = z.object({
-  producto_id: z.string().uuid(),
-  talle: z.string().optional(),
-  color: z.string().optional(),
-  modelo: z.string().optional(),
-  stock_inicial: z.coerce.number().int().min(0).default(0),
-  stock_minimo: z.coerce.number().int().min(0).default(0),
-  precio_venta: z.coerce.number().min(0).optional().nullable(),
-});
-
-export async function crearVariante(input: z.infer<typeof varianteSchema>): Promise<ResultadoAccion> {
-  const parsed = varianteSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
-  const datos = parsed.data;
-
-  const { usuario } = await exigirUsuario();
-  const supabase = await createClient();
-
-  const { data: variante, error } = await supabase
-    .from("variantes")
-    .insert({
-      producto_id: datos.producto_id,
-      talle: datos.talle || null,
-      color: datos.color || null,
-      modelo: datos.modelo || null,
-      stock_minimo: datos.stock_minimo,
-      precio_venta: datos.precio_venta || null,
-    })
-    .select("id")
-    .single();
-
-  if (error || !variante) return { ok: false, error: "No se pudo crear la variante. " + (error?.message ?? "") };
-
-  if (datos.stock_inicial > 0) {
-    await supabase.from("movimientos_stock").insert({
-      producto_id: datos.producto_id,
-      variante_id: variante.id,
-      tipo: "entrada",
-      cantidad: datos.stock_inicial,
-      motivo: "Carga inicial de variante",
-      usuario_id: usuario.id,
-    });
-  }
-
-  // si el producto no tenía marcado que tiene variantes, lo marcamos
-  await supabase.from("productos").update({ tiene_variantes: true }).eq("id", datos.producto_id);
-
-  revalidatePath(`/panel/stock/${datos.producto_id}`);
-  return { ok: true, id: variante.id };
 }
 
 export async function agregarFoto(
@@ -209,8 +104,8 @@ export async function agregarFoto(
     .from("producto_fotos")
     .insert({ producto_id: productoId, path_original: pathOriginal, path_thumbnail: pathThumbnail, orden });
   if (error) return { ok: false, error: error.message };
-  revalidatePath(`/panel/stock/${productoId}`);
-  revalidatePath("/panel/stock");
+  revalidatePath(`/panel/tienda-web/${productoId}`);
+  revalidatePath("/panel/tienda-web");
   return { ok: true };
 }
 
@@ -219,7 +114,7 @@ export async function eliminarFoto(fotoId: string, productoId: string): Promise<
   const supabase = await createClient();
   const { error } = await supabase.from("producto_fotos").delete().eq("id", fotoId);
   if (error) return { ok: false, error: error.message };
-  revalidatePath(`/panel/stock/${productoId}`);
+  revalidatePath(`/panel/tienda-web/${productoId}`);
   return { ok: true };
 }
 
@@ -228,7 +123,7 @@ export async function crearCategoria(nombre: string, slug: string): Promise<Resu
   const supabase = await createClient();
   const { error } = await supabase.from("categorias").insert({ nombre, slug });
   if (error) return { ok: false, error: "No se pudo crear la categoría. " + error.message };
-  revalidatePath("/panel/stock");
+  revalidatePath("/panel/tienda-web");
   return { ok: true };
 }
 
@@ -238,8 +133,6 @@ export interface FilaCsv {
   proveedor?: string;
   precio_venta: number;
   precio_costo?: number;
-  stock_inicial?: number;
-  stock_minimo?: number;
   es_a_pedido?: boolean;
 }
 
@@ -297,7 +190,6 @@ export async function importarProductosCsv(
         categoria_id,
         proveedor: fila.proveedor?.trim() || null,
         precio_venta: fila.precio_venta,
-        stock_minimo: fila.stock_minimo ?? 0,
         es_a_pedido: fila.es_a_pedido ?? false,
       })
       .select("id")
@@ -309,20 +201,13 @@ export async function importarProductosCsv(
     }
 
     if (usuario.rol === "admin" && fila.precio_costo) {
-      await supabase.from("producto_costos").insert({ producto_id: producto.id, precio_costo: fila.precio_costo, updated_by: usuario.id });
-    }
-    if (fila.stock_inicial && fila.stock_inicial > 0) {
-      await supabase.from("movimientos_stock").insert({
-        producto_id: producto.id,
-        tipo: "entrada",
-        cantidad: fila.stock_inicial,
-        motivo: "Importación inicial (CSV)",
-        usuario_id: usuario.id,
-      });
+      await supabase
+        .from("producto_costos")
+        .insert({ producto_id: producto.id, precio_costo: fila.precio_costo, updated_by: usuario.id });
     }
     creados++;
   }
 
-  revalidatePath("/panel/stock");
+  revalidatePath("/panel/tienda-web");
   return { creados, errores };
 }

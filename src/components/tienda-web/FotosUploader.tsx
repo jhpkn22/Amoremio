@@ -5,7 +5,7 @@ import { ImagePlus, Trash2, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { comprimirImagen } from "@/lib/imagen";
 import { urlFotoProducto } from "@/lib/supabase/storage";
-import { agregarFoto, eliminarFoto } from "@/app/panel/stock/actions";
+import { agregarFoto, eliminarFoto } from "@/app/panel/tienda-web/actions";
 import type { ProductoFoto } from "@/lib/types/database";
 
 const BUCKET = "productos";

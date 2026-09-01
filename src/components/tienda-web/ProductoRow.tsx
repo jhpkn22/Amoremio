@@ -6,13 +6,11 @@ import { urlFotoProducto } from "@/lib/supabase/storage";
 import type { Producto } from "@/lib/types/database";
 
 export function ProductoRow({ producto }: { producto: Producto }) {
-  const sinStock = producto.stock_actual <= 0 && !producto.es_a_pedido;
-  const stockBajo = !sinStock && producto.stock_actual <= producto.stock_minimo;
   const foto = producto.producto_fotos?.[0];
 
   return (
     <Link
-      href={`/panel/stock/${producto.id}`}
+      href={`/panel/tienda-web/${producto.id}`}
       className="flex items-center gap-3 rounded-xl border border-border bg-surface p-2.5 hover:border-border-strong sm:p-3"
     >
       <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-rose-50">
@@ -28,8 +26,7 @@ export function ProductoRow({ producto }: { producto: Producto }) {
         <p className="truncate text-[14.5px] font-semibold text-ink-900">{producto.nombre}</p>
         <p className="font-mono text-[12px] text-ink-600">{producto.codigo_interno}</p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
-          {sinStock && <Badge tono="alerta">Sin stock</Badge>}
-          {stockBajo && <Badge tono="alerta">Quedan {producto.stock_actual}</Badge>}
+          {producto.en_oferta && <Badge tono="exito">Oferta</Badge>}
           {producto.es_a_pedido && <Badge tono="neutral">A pedido</Badge>}
           {!producto.visible_en_vitrina && <Badge tono="neutral">Oculto</Badge>}
         </div>

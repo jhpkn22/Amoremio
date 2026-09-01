@@ -30,6 +30,6 @@ export async function getUsuarioActual(): Promise<{
 export async function exigirUsuario(opts?: { soloAdmin?: boolean }) {
   const sesion = await getUsuarioActual();
   if (!sesion) redirect("/login");
-  if (opts?.soloAdmin && sesion.usuario.rol !== "admin") redirect("/panel/stock");
+  if (opts?.soloAdmin && sesion.usuario.rol !== "admin") redirect("/panel/caja");
   return sesion;
 }

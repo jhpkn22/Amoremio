@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Search, AlertTriangle } from "lucide-react";
+import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Categoria } from "@/lib/types/database";
 
@@ -23,7 +23,6 @@ export function FiltrosStock({ categorias }: { categorias: Categoria[] }) {
   }
 
   const categoriaActiva = searchParams.get("categoria");
-  const soloAlerta = searchParams.get("alerta") === "1";
 
   return (
     <div className="mb-4 space-y-3">
@@ -68,16 +67,6 @@ export function FiltrosStock({ categorias }: { categorias: Categoria[] }) {
             {c.nombre}
           </button>
         ))}
-        <button
-          onClick={() => actualizar({ alerta: soloAlerta ? null : "1" })}
-          className={cn(
-            "flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-semibold",
-            soloAlerta ? "border-alert bg-alert-soft text-alert" : "border-border bg-surface text-ink-600"
-          )}
-        >
-          <AlertTriangle size={14} />
-          Con alerta
-        </button>
       </div>
     </div>
   );

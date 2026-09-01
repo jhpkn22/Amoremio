@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { Field, Label, Input, Textarea, Select, CampoError } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
-import { crearProducto, actualizarProducto, type ProductoInput } from "@/app/panel/stock/actions";
+import { crearProducto, actualizarProducto, type ProductoInput } from "@/app/panel/tienda-web/actions";
 import type { Categoria, Producto } from "@/lib/types/database";
 
 export function ProductoForm({
@@ -41,8 +41,6 @@ export function ProductoForm({
       proveedor: String(form.get("proveedor") || ""),
       precio_venta: Number(form.get("precio_venta") || 0),
       precio_costo: esAdmin && form.get("precio_costo") ? Number(form.get("precio_costo")) : null,
-      stock_inicial: Number(form.get("stock_inicial") || 0),
-      stock_minimo: Number(form.get("stock_minimo") || 0),
       visible_en_vitrina: form.get("visible_en_vitrina") === "on",
       es_a_pedido: esAPedido,
       dias_demora: esAPedido && form.get("dias_demora") ? Number(form.get("dias_demora")) : null,
@@ -58,7 +56,7 @@ export function ProductoForm({
       return;
     }
     if (modo === "crear" && resultado.id) {
-      router.push(`/panel/stock/${resultado.id}`);
+      router.push(`/panel/tienda-web/${resultado.id}`);
     } else {
       router.refresh();
     }
@@ -103,27 +101,6 @@ export function ProductoForm({
             <Input id="precio_costo" name="precio_costo" type="number" min={0} step={500} defaultValue={costoActual ?? ""} />
           </Field>
         )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <Field>
-          <Label htmlFor="stock_inicial">{modo === "crear" ? "Stock inicial" : "Stock actual"}</Label>
-          <Input
-            id="stock_inicial"
-            name="stock_inicial"
-            type="number"
-            min={0}
-            defaultValue={modo === "crear" ? 0 : producto?.stock_actual}
-            disabled={modo === "editar"}
-          />
-          {modo === "editar" && (
-            <p className="mt-1 text-[12px] text-ink-600">Para cambiar el stock, usá los movimientos de abajo — así queda en el historial.</p>
-          )}
-        </Field>
-        <Field>
-          <Label htmlFor="stock_minimo">Stock mínimo</Label>
-          <Input id="stock_minimo" name="stock_minimo" type="number" min={0} defaultValue={producto?.stock_minimo ?? 0} />
-        </Field>
       </div>
 
       <Field>

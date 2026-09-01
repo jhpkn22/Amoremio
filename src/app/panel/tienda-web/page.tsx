@@ -1,16 +1,16 @@
 import { Plus, Upload, PackageSearch } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { FiltrosStock } from "@/components/stock/FiltrosStock";
-import { ProductoRow } from "@/components/stock/ProductoRow";
+import { FiltrosStock } from "@/components/tienda-web/FiltrosStock";
+import { ProductoRow } from "@/components/tienda-web/ProductoRow";
 import { Button } from "@/components/ui/Button";
 import type { Categoria, Producto } from "@/lib/types/database";
 
-export default async function StockPage({
+export default async function TiendaWebPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; categoria?: string; alerta?: string }>;
+  searchParams: Promise<{ q?: string; categoria?: string }>;
 }) {
-  const { q, categoria, alerta } = await searchParams;
+  const { q, categoria } = await searchParams;
   const supabase = await createClient();
 
   const { data: categorias } = await supabase
@@ -40,23 +40,21 @@ export default async function StockPage({
     producto_fotos: [...(p.producto_fotos ?? [])].sort((a, b) => a.orden - b.orden),
   }));
 
-  if (alerta === "1") {
-    productos = productos.filter((p) => p.stock_actual <= p.stock_minimo);
-  }
-
   return (
     <div>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-bold text-ink-900">Stock</h1>
-          <p className="text-[13px] text-ink-600">{productos.length} producto{productos.length === 1 ? "" : "s"}</p>
+          <h1 className="text-[22px] font-bold text-ink-900">Tienda web</h1>
+          <p className="text-[13px] text-ink-600">
+            {productos.length} pieza{productos.length === 1 ? "" : "s"} de muestra para la vitrina · se preparan a pedido
+          </p>
         </div>
         <div className="flex gap-2">
-          <Button href="/panel/stock/importar" variante="fantasma" className="hidden sm:inline-flex">
+          <Button href="/panel/tienda-web/importar" variante="fantasma" className="hidden sm:inline-flex">
             <Upload size={16} /> Importar
           </Button>
-          <Button href="/panel/stock/nuevo">
-            <Plus size={18} /> Nuevo
+          <Button href="/panel/tienda-web/nuevo">
+            <Plus size={18} /> Nueva
           </Button>
         </div>
       </div>
@@ -65,19 +63,19 @@ export default async function StockPage({
 
       {error && (
         <p className="rounded-xl border border-alert bg-alert-soft p-4 text-[14px] text-alert">
-          No se pudo cargar el stock. Revisá tu conexión e intentá de nuevo.
+          No se pudo cargar la tienda web. Revisá tu conexión e intentá de nuevo.
         </p>
       )}
 
       {!error && productos.length === 0 && (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border py-16 text-center">
           <PackageSearch size={32} className="text-rose-300" />
-          <p className="text-[14px] font-semibold text-ink-900">No encontramos productos con esos filtros</p>
+          <p className="text-[14px] font-semibold text-ink-900">No encontramos piezas con esos filtros</p>
           <p className="max-w-xs text-[13px] text-ink-600">
-            Probá con otra búsqueda, o cargá tu primer producto para empezar a armar el catálogo.
+            Probá con otra búsqueda, o cargá tu primera pieza de muestra para armar la vitrina.
           </p>
-          <Button href="/panel/stock/nuevo" className="mt-1">
-            <Plus size={18} /> Cargar producto
+          <Button href="/panel/tienda-web/nuevo" className="mt-1">
+            <Plus size={18} /> Cargar pieza
           </Button>
         </div>
       )}

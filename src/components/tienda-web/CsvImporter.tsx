@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { FileUp, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { formatGs } from "@/lib/utils";
-import { importarProductosCsv, type FilaCsv } from "@/app/panel/stock/actions";
+import { importarProductosCsv, type FilaCsv } from "@/app/panel/tienda-web/actions";
 
 type FilaCruda = Record<string, string>;
 
@@ -49,8 +49,6 @@ export function CsvImporter({ esAdmin }: { esAdmin: boolean }) {
           proveedor: r.proveedor,
           precio_venta: aNumero(r.precio_venta) ?? 0,
           precio_costo: aNumero(r.precio_costo),
-          stock_inicial: aNumero(r.stock_inicial),
-          stock_minimo: aNumero(r.stock_minimo),
           es_a_pedido: aBooleano(r.a_pedido),
         }));
         setFilas(mapeadas);
@@ -75,7 +73,7 @@ export function CsvImporter({ esAdmin }: { esAdmin: boolean }) {
           {nombreArchivo ?? "Elegí un archivo .csv"}
         </span>
         <span className="max-w-xs text-[12.5px] text-ink-600">
-          Columnas: nombre, categoria, proveedor, precio_venta{esAdmin ? ", precio_costo" : ""}, stock_inicial, stock_minimo, a_pedido
+          Columnas: nombre, categoria, proveedor, precio_venta{esAdmin ? ", precio_costo" : ""}, a_pedido
         </span>
         <input type="file" accept=".csv,text/csv" className="hidden" onChange={onArchivo} />
       </label>
@@ -94,7 +92,6 @@ export function CsvImporter({ esAdmin }: { esAdmin: boolean }) {
                   <th className="px-3 py-2">Nombre</th>
                   <th className="px-3 py-2">Categoría</th>
                   <th className="px-3 py-2 text-right">Precio</th>
-                  <th className="px-3 py-2 text-right">Stock</th>
                 </tr>
               </thead>
               <tbody>
@@ -103,7 +100,6 @@ export function CsvImporter({ esAdmin }: { esAdmin: boolean }) {
                     <td className="px-3 py-2">{f.nombre || <span className="text-alert">falta el nombre</span>}</td>
                     <td className="px-3 py-2 text-ink-600">{f.categoria || "—"}</td>
                     <td className="tabular px-3 py-2 text-right">{formatGs(f.precio_venta)}</td>
-                    <td className="tabular px-3 py-2 text-right">{f.stock_inicial ?? 0}</td>
                   </tr>
                 ))}
               </tbody>
@@ -132,7 +128,7 @@ export function CsvImporter({ esAdmin }: { esAdmin: boolean }) {
               </ul>
             </div>
           )}
-          <Button href="/panel/stock" variante="secundario">Ver el stock</Button>
+          <Button href="/panel/tienda-web" variante="secundario">Ver la tienda web</Button>
         </div>
       )}
     </div>

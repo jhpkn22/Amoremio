@@ -27,7 +27,7 @@ function LoginForm() {
       setError("No pudimos iniciar sesión. Revisá el correo y la contraseña e intentá de nuevo.");
       return;
     }
-    router.replace(params.get("volver") || "/panel/stock");
+    router.replace(params.get("volver") || "/panel/caja");
     router.refresh();
   }
 
