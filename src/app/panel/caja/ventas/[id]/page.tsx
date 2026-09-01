@@ -106,7 +106,9 @@ export default async function VentaDetallePage({ params }: { params: Promise<{ i
 
       <div className="flex flex-wrap items-start gap-2">
         <ReimprimirBoton venta={venta} items={ventaItems} vendedorNombre={venta.usuarios?.nombre ?? ""} />
-        {usuario.rol === "admin" && venta.estado === "confirmada" && <AnularVentaBoton ventaId={venta.id} />}
+        {usuario.rol === "admin" && venta.estado === "confirmada" && (
+          <AnularVentaBoton ventaId={venta.id} esV2={!!venta.almacen_id} />
+        )}
       </div>
     </div>
   );

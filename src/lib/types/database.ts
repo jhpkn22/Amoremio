@@ -110,6 +110,7 @@ export interface Cliente {
 export interface CajaTurno {
   id: string;
   usuario_id: string;
+  almacen_id: string | null;
   monto_inicial: number;
   monto_final_esperado: number | null;
   monto_final_contado: number | null;
@@ -125,6 +126,7 @@ export interface Venta {
   numero_ticket: number;
   client_uuid: string | null;
   caja_turno_id: string;
+  almacen_id: string | null;
   usuario_id: string;
   cliente_id: string | null;
   forma_pago: FormaPago;
@@ -147,8 +149,9 @@ export interface Venta {
 export interface VentaItem {
   id: string;
   venta_id: string;
-  producto_id: string;
+  producto_id: string | null;
   variante_id: string | null;
+  articulo_id: string | null;
   nombre_producto: string;
   cantidad: number;
   precio_unitario: number;
@@ -322,15 +325,13 @@ export interface CompraItem {
 
 /** Item tal como vive en el carrito de la Caja, antes de confirmar la venta. */
 export interface ItemCarrito {
-  clave: string; // producto_id + variante_id, para poder sumar cantidad al reescanear
-  producto_id: string;
-  variante_id: string | null;
+  clave: string; // = articulo_id (para sumar cantidad al reescanear)
+  articulo_id: string;
   nombre: string;
-  codigo: string;
+  codigo: string; // código interno o de barras, para mostrar
   cantidad: number;
   precio_unitario: number;
   precio_original: number; // para saber si hubo override manual
   descuento_item: number;
-  stock_disponible: number;
-  es_a_pedido: boolean;
+  stock_disponible: number; // en el almacén del turno
 }

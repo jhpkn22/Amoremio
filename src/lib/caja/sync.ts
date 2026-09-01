@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { listarPendientes, quitarDeLaCola, actualizarIntento } from "./db";
+import { listarPendientes, quitarDeLaCola, actualizarIntento, esPayloadV2 } from "./db";
 
 export interface ResultadoSincronizacion {
   sincronizadas: number;
@@ -8,10 +8,9 @@ export interface ResultadoSincronizacion {
 
 /**
  * Procesa la cola local: intenta confirmar cada venta pendiente contra
- * Supabase. confirmar_venta() es idempotente por client_uuid (ver
- * amoremio-schema.sql), así que reintentar una venta que en realidad
- * ya se guardó la vez anterior no la duplica — simplemente devuelve la
- * misma venta de nuevo.
+ * Supabase. Las RPC (confirmar_venta_v2 / confirmar_venta) son
+ * idempotentes por client_uuid, así que reintentar una venta que ya se
+ * guardó no la duplica — devuelve la misma venta de nuevo.
  */
 export async function sincronizarCola(supabase: SupabaseClient): Promise<ResultadoSincronizacion> {
   const pendientes = await listarPendientes();
@@ -19,7 +18,8 @@ export async function sincronizarCola(supabase: SupabaseClient): Promise<Resulta
   let fallidas = 0;
 
   for (const venta of pendientes) {
-    const { error } = await supabase.rpc("confirmar_venta", venta.payload);
+    const rpc = esPayloadV2(venta.payload) ? "confirmar_venta_v2" : "confirmar_venta";
+    const { error } = await supabase.rpc(rpc, venta.payload);
     if (error) {
       fallidas++;
       await actualizarIntento(venta.client_uuid, error.message);

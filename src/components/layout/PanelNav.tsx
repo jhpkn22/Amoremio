@@ -43,8 +43,8 @@ const grupos: Grupo[] = [
     titulo: "Vender",
     items: [
       { href: "/panel/caja", label: "Caja", icon: ShoppingBag, listo: true, primarioMobile: true },
-      { href: "/panel/clientes", label: "Clientes", icon: Users, primarioMobile: true },
-      { href: "/panel/cuentas", label: "Deudas", icon: Wallet, listo: true },
+      { href: "/panel/clientes", label: "Clientes", icon: Users, listo: true, primarioMobile: true },
+      { href: "/panel/deudas", label: "Deudas", icon: Wallet, listo: true },
     ],
   },
   {

@@ -2,7 +2,7 @@ import { exigirUsuario } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AbrirTurnoForm } from "@/components/caja/AbrirTurnoForm";
 import { PosCliente } from "@/components/caja/PosCliente";
-import type { CajaTurno } from "@/lib/types/database";
+import type { Almacen, CajaTurno } from "@/lib/types/database";
 
 export default async function CajaPage() {
   const { authId, usuario } = await exigirUsuario();
@@ -16,8 +16,22 @@ export default async function CajaPage() {
     .maybeSingle<CajaTurno>();
 
   if (!turno) {
-    return <AbrirTurnoForm usuarioId={authId} />;
+    const { data: almacenes } = await supabase
+      .from("almacenes")
+      .select("*")
+      .is("deleted_at", null)
+      .eq("activo", true)
+      .order("es_principal", { ascending: false })
+      .order("nombre");
+    return <AbrirTurnoForm usuarioId={authId} almacenes={(almacenes ?? []) as Almacen[]} />;
   }
 
-  return <PosCliente turno={turno} usuarioNombre={usuario.nombre} esAdmin={usuario.rol === "admin"} />;
+  return (
+    <PosCliente
+      turno={turno}
+      almacenId={turno.almacen_id ?? ""}
+      usuarioNombre={usuario.nombre}
+      esAdmin={usuario.rol === "admin"}
+    />
+  );
 }

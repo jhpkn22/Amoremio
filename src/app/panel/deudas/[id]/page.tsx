@@ -4,7 +4,7 @@ import { ArrowLeft, MessageCircle } from "lucide-react";
 import { exigirUsuario } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
-import { RegistrarPagoForm } from "@/components/cuentas/RegistrarPagoForm";
+import { RegistrarPagoForm } from "@/components/deudas/RegistrarPagoForm";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { formatGs } from "@/lib/utils";
 import type { Cliente, CuentaMovimiento } from "@/lib/types/database";
@@ -33,8 +33,8 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
 
   return (
     <div className="mx-auto max-w-lg">
-      <Link href="/panel/cuentas" className="mb-4 inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-ink-600 hover:text-ink-900">
-        <ArrowLeft size={16} /> Volver a cuentas
+      <Link href="/panel/deudas" className="mb-4 inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-ink-600 hover:text-ink-900">
+        <ArrowLeft size={16} /> Volver a Deudas
       </Link>
 
       <div className="mb-1 flex items-start justify-between gap-2">

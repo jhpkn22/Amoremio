@@ -101,8 +101,13 @@ export function CarritoVenta({ esAdmin }: { esAdmin: boolean }) {
               </div>
             </div>
 
-            {item.stock_disponible <= 0 && item.es_a_pedido && (
-              <p className="mt-1.5 text-[11.5px] font-semibold text-rose-700">Sin stock — se vende a pedido</p>
+            {item.stock_disponible <= 0 && (
+              <p className="mt-1.5 text-[11.5px] font-semibold text-rose-700">Sin stock en este almacén</p>
+            )}
+            {item.stock_disponible > 0 && item.cantidad > item.stock_disponible && (
+              <p className="mt-1.5 text-[11.5px] font-semibold text-rose-700">
+                Solo hay {item.stock_disponible} en este almacén
+              </p>
             )}
           </li>
         );

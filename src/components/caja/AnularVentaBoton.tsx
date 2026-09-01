@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Label, Field, CampoError } from "@/components/ui/Field";
 
 /** Anular venta: solo admin (RLS lo exige del lado del servidor también — esto es además, no en vez de). */
-export function AnularVentaBoton({ ventaId }: { ventaId: string }) {
+export function AnularVentaBoton({ ventaId, esV2 = true }: { ventaId: string; esV2?: boolean }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [motivo, setMotivo] = useState("");
@@ -23,7 +23,10 @@ export function AnularVentaBoton({ ventaId }: { ventaId: string }) {
     setEnviando(true);
     setError(null);
     const supabase = createClient();
-    const { error: errRpc } = await supabase.rpc("anular_venta", { p_venta_id: ventaId, p_motivo: motivo.trim() });
+    const { error: errRpc } = await supabase.rpc(esV2 ? "anular_venta_v2" : "anular_venta", {
+      p_venta_id: ventaId,
+      p_motivo: motivo.trim(),
+    });
     setEnviando(false);
     if (errRpc) {
       setError(errRpc.message || "No se pudo anular la venta.");

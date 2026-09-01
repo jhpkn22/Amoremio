@@ -7,24 +7,38 @@ import { openDB, type DBSchema, type IDBPDatabase } from "idb";
  * se sincroniza al toque, si no, queda esperando al próximo intento.
  */
 
+export interface PayloadVentaV2 {
+  p_client_uuid: string;
+  p_caja_turno_id: string;
+  p_almacen_id: string;
+  p_cliente_id: string | null;
+  p_forma_pago: string;
+  p_items: {
+    articulo_id: string;
+    cantidad: number;
+    precio_unitario: number;
+    descuento_item: number;
+  }[];
+  p_descuento_total: number;
+  p_efectivo_recibido: number | null;
+  p_creada_offline: boolean;
+}
+
+// Forma vieja (ventas sobre `productos`), por si quedó algo encolado antes del rework.
+export interface PayloadVentaV1 {
+  p_client_uuid: string;
+  p_caja_turno_id: string;
+  p_cliente_id: string | null;
+  p_forma_pago: string;
+  p_items: { producto_id: string; variante_id: string | null; cantidad: number; precio_unitario: number; descuento_item: number }[];
+  p_descuento_total: number;
+  p_efectivo_recibido: number | null;
+  p_creada_offline: boolean;
+}
+
 export interface VentaPendiente {
   client_uuid: string; // clave de idempotencia — evita duplicar si se reintenta
-  payload: {
-    p_client_uuid: string;
-    p_caja_turno_id: string;
-    p_cliente_id: string | null;
-    p_forma_pago: string;
-    p_items: {
-      producto_id: string;
-      variante_id: string | null;
-      cantidad: number;
-      precio_unitario: number;
-      descuento_item: number;
-    }[];
-    p_descuento_total: number;
-    p_efectivo_recibido: number | null;
-    p_creada_offline: boolean;
-  };
+  payload: PayloadVentaV2 | PayloadVentaV1;
   ticket: {
     numeroTicketLocal: number;
     fecha: string;
@@ -34,6 +48,10 @@ export interface VentaPendiente {
   creada_en: string;
   intentos: number;
   ultimo_error?: string;
+}
+
+export function esPayloadV2(p: PayloadVentaV2 | PayloadVentaV1): p is PayloadVentaV2 {
+  return "p_almacen_id" in p;
 }
 
 interface AmoremioDB extends DBSchema {
@@ -47,9 +65,13 @@ let dbPromise: Promise<IDBPDatabase<AmoremioDB>> | null = null;
 
 function getDB() {
   if (!dbPromise) {
-    dbPromise = openDB<AmoremioDB>("amoremio-caja", 1, {
-      upgrade(db) {
-        db.createObjectStore("cola_ventas", { keyPath: "client_uuid" });
+    dbPromise = openDB<AmoremioDB>("amoremio-caja", 2, {
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
+          db.createObjectStore("cola_ventas", { keyPath: "client_uuid" });
+        }
+        // v1 -> v2: el store no cambia de forma; los payloads viejos que
+        // hayan quedado se sincronizan igual (sync.ts elige la RPC).
       },
     });
   }

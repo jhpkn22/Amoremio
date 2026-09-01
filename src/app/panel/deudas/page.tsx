@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatGs } from "@/lib/utils";
 import type { Cliente } from "@/lib/types/database";
 
-export default async function CuentasPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+export default async function DeudasPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   await exigirUsuario();
   const { q } = await searchParams;
   const supabase = await createClient();
@@ -21,7 +21,7 @@ export default async function CuentasPage({ searchParams }: { searchParams: Prom
   return (
     <div>
       <div className="mb-4">
-        <h1 className="text-[22px] font-bold text-ink-900">Cuentas corrientes</h1>
+        <h1 className="text-[22px] font-bold text-ink-900">Deudas de clientes</h1>
         <p className="text-[13px] text-ink-600">
           {conDeuda.length} cliente{conDeuda.length === 1 ? "" : "s"} con saldo · {formatGs(totalDeuda)} total
         </p>
@@ -51,7 +51,7 @@ export default async function CuentasPage({ searchParams }: { searchParams: Prom
         {clientes.map((c) => (
           <Link
             key={c.id}
-            href={`/panel/cuentas/${c.id}`}
+            href={`/panel/deudas/${c.id}`}
             className="flex items-center justify-between gap-2 rounded-xl border border-border bg-surface p-3.5 hover:border-border-strong"
           >
             <div className="min-w-0">

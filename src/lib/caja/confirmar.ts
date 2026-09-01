@@ -6,6 +6,7 @@ import { construirTicketVenta, type ConfigTicket, type DatosNegocio } from "@/li
 export interface ParametrosConfirmarVenta {
   supabase: SupabaseClient;
   turnoId: string;
+  almacenId: string;
   vendedorNombre: string;
   items: ItemCarrito[];
   descuentoGlobal: number;
@@ -31,7 +32,8 @@ export async function confirmarVentaCaja(
   configTicket: ConfigTicket,
   negocio: DatosNegocio
 ): Promise<ResultadoConfirmarVenta> {
-  const { supabase, turnoId, vendedorNombre, items, descuentoGlobal, formaPago, clienteId, efectivoRecibido } = params;
+  const { supabase, turnoId, almacenId, vendedorNombre, items, descuentoGlobal, formaPago, clienteId, efectivoRecibido } =
+    params;
 
   const clientUuid = crypto.randomUUID();
   const subtotal = items.reduce((acc, i) => acc + i.cantidad * i.precio_unitario - i.descuento_item, 0);
@@ -40,11 +42,11 @@ export async function confirmarVentaCaja(
   const payload = {
     p_client_uuid: clientUuid,
     p_caja_turno_id: turnoId,
+    p_almacen_id: almacenId,
     p_cliente_id: clienteId,
     p_forma_pago: formaPago,
     p_items: items.map((i) => ({
-      producto_id: i.producto_id,
-      variante_id: i.variante_id,
+      articulo_id: i.articulo_id,
       cantidad: i.cantidad,
       precio_unitario: i.precio_unitario,
       descuento_item: i.descuento_item,
@@ -66,7 +68,7 @@ export async function confirmarVentaCaja(
 
   if (navigator.onLine) {
     try {
-      const { data, error } = await supabase.rpc("confirmar_venta", payload);
+      const { data, error } = await supabase.rpc("confirmar_venta_v2", payload);
       if (error) throw error;
       numeroTicket = data?.numero_ticket ?? null;
     } catch (e) {

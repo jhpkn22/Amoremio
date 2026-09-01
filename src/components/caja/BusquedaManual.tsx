@@ -3,16 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Search, X } from "lucide-react";
-import { buscarPorNombre, itemDesdeProducto, itemDesdeVariante, type ResultadoBusqueda } from "@/lib/caja/buscar";
+import { buscarPorNombre, itemDesdeResultado, type ResultadoBusqueda } from "@/lib/caja/buscar";
 import type { ItemCarrito } from "@/lib/types/database";
-import { formatGs, cn } from "@/lib/utils";
+import { formatGs } from "@/lib/utils";
 
-/** Tercera vía que pide el brief: búsqueda manual por nombre o código, para cuando no hay etiqueta a mano. */
+/** Búsqueda manual por nombre o código, para cuando no hay etiqueta a mano. */
 export function BusquedaManual({
   supabase,
+  almacenId,
   onSeleccionar,
 }: {
   supabase: SupabaseClient;
+  almacenId: string;
   onSeleccionar: (item: Omit<ItemCarrito, "cantidad" | "descuento_item">) => void;
 }) {
   const [texto, setTexto] = useState("");
@@ -32,27 +34,23 @@ export function BusquedaManual({
 
   useEffect(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    // todo el setState queda adentro del setTimeout (incluso el "vaciar"
-    // por texto corto) para no disparar setState de forma síncrona en
-    // el cuerpo del efecto.
     timeoutRef.current = setTimeout(async () => {
       if (texto.trim().length < 2) {
         setResultados([]);
         return;
       }
       setBuscando(true);
-      const r = await buscarPorNombre(supabase, texto);
+      const r = await buscarPorNombre(supabase, texto, almacenId);
       setResultados(r);
       setBuscando(false);
     }, 300);
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [texto, supabase]);
+  }, [texto, supabase, almacenId]);
 
-  function elegir(item: Omit<ItemCarrito, "cantidad" | "descuento_item"> | null) {
-    if (!item) return;
-    onSeleccionar(item);
+  function elegir(r: ResultadoBusqueda) {
+    onSeleccionar(itemDesdeResultado(r));
     setTexto("");
     setResultados([]);
     setAbierto(false);
@@ -87,52 +85,25 @@ export function BusquedaManual({
         <div className="absolute inset-x-0 top-full z-30 mt-1.5 max-h-80 overflow-y-auto rounded-xl border border-border bg-surface shadow-lg">
           {buscando && <p className="p-3 text-[13px] text-ink-600">Buscando…</p>}
           {!buscando && resultados.length === 0 && (
-            <p className="p-3 text-[13px] text-ink-600">No encontramos productos con &quot;{texto}&quot;.</p>
+            <p className="p-3 text-[13px] text-ink-600">No encontramos artículos con &quot;{texto}&quot;.</p>
           )}
           {!buscando &&
-            resultados.map(({ producto, variantes }) => (
-              <div key={producto.id} className="border-b border-border last:border-0">
-                {variantes.length === 0 ? (
-                  <button
-                    onClick={() => elegir(itemDesdeProducto(producto))}
-                    disabled={producto.stock_actual <= 0 && !producto.es_a_pedido}
-                    className="flex w-full items-center justify-between gap-2 p-3 text-left hover:bg-rose-50 disabled:opacity-40"
-                  >
-                    <span>
-                      <span className="block text-[14px] font-semibold text-ink-900">{producto.nombre}</span>
-                      <span className="block font-mono text-[12px] text-ink-600">
-                        {producto.codigo_interno} · stock {producto.stock_actual}
-                      </span>
-                    </span>
-                    <span className="tabular whitespace-nowrap text-[14px] font-bold text-ink-900">
-                      {formatGs(producto.precio_venta)}
-                    </span>
-                  </button>
-                ) : (
-                  <div className="p-3">
-                    <p className="mb-2 text-[14px] font-semibold text-ink-900">{producto.nombre}</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {variantes.map((v) => {
-                        const etiqueta = [v.talle, v.color, v.modelo].filter(Boolean).join(" · ") || v.codigo_interno;
-                        const sinStock = v.stock_actual <= 0 && !producto.es_a_pedido;
-                        return (
-                          <button
-                            key={v.id}
-                            onClick={() => elegir(itemDesdeVariante(v))}
-                            disabled={sinStock}
-                            className={cn(
-                              "rounded-full border border-border-strong px-3 py-1.5 text-[12.5px] font-semibold text-ink-900 hover:bg-rose-50",
-                              sinStock && "opacity-40"
-                            )}
-                          >
-                            {etiqueta} · {v.stock_actual}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
+            resultados.map((r) => (
+              <button
+                key={r.id}
+                onClick={() => elegir(r)}
+                className="flex w-full items-center justify-between gap-2 border-b border-border p-3 text-left last:border-0 hover:bg-rose-50"
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-[14px] font-semibold text-ink-900">{r.nombre}</span>
+                  <span className="block font-mono text-[12px] text-ink-600">
+                    {r.codigo_interno} · stock {r.stock}
+                  </span>
+                </span>
+                <span className="tabular whitespace-nowrap text-[14px] font-bold text-ink-900">
+                  {formatGs(r.precio_venta)}
+                </span>
+              </button>
             ))}
         </div>
       )}

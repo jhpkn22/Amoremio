@@ -16,6 +16,7 @@ import { EscanerCamara } from "./EscanerCamara";
 import { BusquedaManual } from "./BusquedaManual";
 import { CarritoVenta } from "./CarritoVenta";
 import { PanelCobro } from "./PanelCobro";
+import { ModalCobro } from "./ModalCobro";
 import { EstadoConexion } from "./EstadoConexion";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -23,17 +24,19 @@ import { formatGs } from "@/lib/utils";
 
 interface Props {
   turno: CajaTurno;
+  almacenId: string;
   usuarioNombre: string;
   esAdmin: boolean;
 }
 
 type Aviso = { tipo: "error" | "exito"; texto: string } | null;
 
-export function PosCliente({ turno, usuarioNombre, esAdmin }: Props) {
+export function PosCliente({ turno, almacenId, usuarioNombre, esAdmin }: Props) {
   const [supabase] = useState(() => createClient());
   const { items, formaPago, clienteId, agregarItem, total, efectivoRecibido, descuentoGlobal, limpiar } = useCarrito();
 
   const [mostrarCamara, setMostrarCamara] = useState(false);
+  const [mostrarCobro, setMostrarCobro] = useState(false);
   const [aviso, setAviso] = useState<Aviso>(null);
   const [confirmando, setConfirmando] = useState(false);
   const [config, setConfig] = useState<{ ruta: RutaImpresion; ticket: ConfigTicket } | null>(null);
@@ -49,14 +52,13 @@ export function PosCliente({ turno, usuarioNombre, esAdmin }: Props) {
   }, [aviso]);
 
   async function alEscanear(codigo: string) {
-    const item = await buscarPorCodigo(supabase, codigo);
+    const item = await buscarPorCodigo(supabase, codigo, almacenId);
     if (!item) {
-      setAviso({ tipo: "error", texto: `No encontramos ningún producto con el código "${codigo}".` });
+      setAviso({ tipo: "error", texto: `No encontramos ningún artículo con el código "${codigo}".` });
       return;
     }
-    if (item.stock_disponible <= 0 && !item.es_a_pedido) {
-      setAviso({ tipo: "error", texto: `"${item.nombre}" no tiene stock disponible.` });
-      return;
+    if (item.stock_disponible <= 0) {
+      setAviso({ tipo: "error", texto: `"${item.nombre}" no tiene stock en este almacén (se agrega igual, el stock puede quedar negativo).` });
     }
     agregarItem(item);
   }
@@ -66,14 +68,8 @@ export function PosCliente({ turno, usuarioNombre, esAdmin }: Props) {
     await alEscanear(codigo);
   }
 
-  const puedeCobrar =
-    items.length > 0 &&
-    !confirmando &&
-    (formaPago !== "fiado" || !!clienteId) &&
-    (formaPago !== "efectivo" || efectivoRecibido == null || efectivoRecibido >= total());
-
   async function cobrar() {
-    if (!puedeCobrar) return;
+    if (confirmando) return;
     setConfirmando(true);
     setAviso(null);
     try {
@@ -82,6 +78,7 @@ export function PosCliente({ turno, usuarioNombre, esAdmin }: Props) {
         {
           supabase,
           turnoId: turno.id,
+          almacenId,
           vendedorNombre: usuarioNombre,
           items,
           descuentoGlobal,
@@ -103,7 +100,10 @@ export function PosCliente({ turno, usuarioNombre, esAdmin }: Props) {
             : " La venta se guardó, pero no se pudo imprimir el ticket.";
       }
 
-      const numero = resultado.numeroTicket != null ? `Nº ${String(resultado.numeroTicket).padStart(6, "0")}` : "pendiente de sincronizar";
+      const numero =
+        resultado.numeroTicket != null
+          ? `Nº ${String(resultado.numeroTicket).padStart(6, "0")}`
+          : "pendiente de sincronizar";
       setAviso({
         tipo: "exito",
         texto: resultado.offline
@@ -111,11 +111,26 @@ export function PosCliente({ turno, usuarioNombre, esAdmin }: Props) {
           : `Venta confirmada — Ticket ${numero}.${avisoImpresion}`,
       });
       limpiar();
+      setMostrarCobro(false);
     } catch (e) {
       setAviso({ tipo: "error", texto: e instanceof Error ? e.message : "No se pudo registrar la venta. Intentá de nuevo." });
     } finally {
       setConfirmando(false);
     }
+  }
+
+  if (!almacenId) {
+    return (
+      <Card className="mx-auto max-w-md">
+        <p className="text-[14px] font-semibold text-ink-900">Este turno se abrió sin almacén</p>
+        <p className="mt-1 text-[13px] text-ink-600">
+          Cerrá el turno y volvé a abrirlo eligiendo el almacén desde el que vas a vender.
+        </p>
+        <Button href="/panel/caja/cierre" className="mt-3">
+          Ir a cerrar turno
+        </Button>
+      </Card>
+    );
   }
 
   return (
@@ -158,7 +173,7 @@ export function PosCliente({ turno, usuarioNombre, esAdmin }: Props) {
         <div className="flex flex-col gap-3">
           <div className="flex gap-2">
             <div className="flex-1">
-              <EscanerInput activo={!mostrarCamara} onEscaneo={alEscanear} />
+              <EscanerInput activo={!mostrarCamara && !mostrarCobro} onEscaneo={alEscanear} />
             </div>
             <button
               onClick={() => setMostrarCamara(true)}
@@ -170,7 +185,7 @@ export function PosCliente({ turno, usuarioNombre, esAdmin }: Props) {
             </button>
           </div>
 
-          <BusquedaManual supabase={supabase} onSeleccionar={agregarItem} />
+          <BusquedaManual supabase={supabase} almacenId={almacenId} onSeleccionar={agregarItem} />
 
           <CarritoVenta esAdmin={esAdmin} />
 
@@ -183,15 +198,28 @@ export function PosCliente({ turno, usuarioNombre, esAdmin }: Props) {
 
         <div>
           <Card>
-            <PanelCobro supabase={supabase} />
-            <Button tamaño="grande" className="mt-4 w-full" disabled={!puedeCobrar} onClick={cobrar}>
-              {confirmando ? "Confirmando…" : `Cobrar ${formatGs(total())}`}
+            <PanelCobro />
+            <Button
+              tamaño="grande"
+              className="mt-4 w-full"
+              disabled={items.length === 0 || confirmando}
+              onClick={() => setMostrarCobro(true)}
+            >
+              Cobrar {formatGs(total())}
             </Button>
           </Card>
         </div>
       </div>
 
       {mostrarCamara && <EscanerCamara onDetectado={alDetectarPorCamara} onCerrar={() => setMostrarCamara(false)} />}
+      {mostrarCobro && (
+        <ModalCobro
+          supabase={supabase}
+          confirmando={confirmando}
+          onCerrar={() => setMostrarCobro(false)}
+          onConfirmar={cobrar}
+        />
+      )}
     </div>
   );
 }
