@@ -180,6 +180,41 @@ export interface CuentaMovimiento {
   created_at: string;
 }
 
+// ---------------------------------------------------------------------
+// Catálogo real (Fase 1) — separado de `productos`/`Producto`, que ahora
+// es la "Tienda web" (piezas de muestra para la vitrina).
+// ---------------------------------------------------------------------
+
+export type CodigoBarrasOrigen = "fabrica" | "generado" | "asignado" | "sin_codigo";
+
+export interface Articulo {
+  id: string;
+  codigo_interno: string;
+  codigo_barras: string | null;
+  codigo_barras_origen: CodigoBarrasOrigen;
+  codigo_barras_impreso: boolean;
+  nombre: string;
+  categoria_id: string | null;
+  precio_venta: number;
+  precio_lista: number | null;
+  descuento_pct: number;
+  stock_minimo: number;
+  activo: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  // relaciones embebidas opcionales (según el select)
+  categorias?: Pick<Categoria, "id" | "nombre" | "slug"> | null;
+  articulo_costos?: { precio_costo: number } | null;
+}
+
+export interface ArticuloCosto {
+  articulo_id: string;
+  precio_costo: number;
+  updated_at: string;
+  updated_by: string | null;
+}
+
 /** Item tal como vive en el carrito de la Caja, antes de confirmar la venta. */
 export interface ItemCarrito {
   clave: string; // producto_id + variante_id, para poder sumar cantidad al reescanear
