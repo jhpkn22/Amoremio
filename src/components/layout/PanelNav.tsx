@@ -59,7 +59,7 @@ const grupos: Grupo[] = [
     titulo: "Inventario",
     items: [
       { href: "/panel/stock", label: "Stock", icon: Boxes, listo: true, primarioMobile: true },
-      { href: "/panel/compras", label: "Compras", icon: Truck },
+      { href: "/panel/compras", label: "Compras", icon: Truck, listo: true },
       { href: "/panel/proveedores", label: "Proveedores", icon: Factory, listo: true },
     ],
   },

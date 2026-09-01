@@ -285,6 +285,41 @@ export interface StockMovimiento {
   usuarios?: Pick<Usuario, "nombre"> | null;
 }
 
+// ---------------------------------------------------------------------
+// Compras (Fase 4)
+// ---------------------------------------------------------------------
+
+export type EstadoCompra = "confirmada" | "anulada";
+export type CondicionCompra = "contado" | "credito";
+
+export interface Compra {
+  id: string;
+  numero: number;
+  proveedor_id: string;
+  almacen_id: string;
+  condicion: CondicionCompra;
+  total: number;
+  estado: EstadoCompra;
+  usuario_id: string;
+  created_at: string;
+  anulada_motivo: string | null;
+  anulada_por: string | null;
+  anulada_at: string | null;
+  proveedores?: Pick<Proveedor, "nombre"> | null;
+  almacenes?: Pick<Almacen, "nombre"> | null;
+  compra_items?: CompraItem[];
+}
+
+export interface CompraItem {
+  id: string;
+  compra_id: string;
+  articulo_id: string;
+  cantidad: number;
+  costo_unitario: number;
+  precio_venta_nuevo: number | null;
+  articulos?: Pick<Articulo, "nombre" | "codigo_interno"> | null;
+}
+
 /** Item tal como vive en el carrito de la Caja, antes de confirmar la venta. */
 export interface ItemCarrito {
   clave: string; // producto_id + variante_id, para poder sumar cantidad al reescanear
