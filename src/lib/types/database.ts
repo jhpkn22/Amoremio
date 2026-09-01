@@ -246,6 +246,45 @@ export interface ProveedorMovimiento {
   created_at: string;
 }
 
+// ---------------------------------------------------------------------
+// Almacenes + libro mayor de stock por almacén (Fase 3)
+// ---------------------------------------------------------------------
+
+export type TipoMovArticulo = "compra" | "venta" | "ajuste" | "devolucion" | "transferencia";
+
+export interface Almacen {
+  id: string;
+  nombre: string;
+  direccion: string | null;
+  es_principal: boolean;
+  activo: boolean;
+  created_at: string;
+  deleted_at: string | null;
+}
+
+export interface ArticuloStock {
+  articulo_id: string;
+  almacen_id: string;
+  cantidad: number;
+}
+
+export interface StockMovimiento {
+  id: string;
+  articulo_id: string;
+  almacen_id: string;
+  tipo: TipoMovArticulo;
+  cantidad: number;
+  motivo: string | null;
+  compra_id: string | null;
+  venta_id: string | null;
+  transferencia_id: string | null;
+  usuario_id: string;
+  created_at: string;
+  articulos?: Pick<Articulo, "nombre" | "codigo_interno"> | null;
+  almacenes?: Pick<Almacen, "nombre"> | null;
+  usuarios?: Pick<Usuario, "nombre"> | null;
+}
+
 /** Item tal como vive en el carrito de la Caja, antes de confirmar la venta. */
 export interface ItemCarrito {
   clave: string; // producto_id + variante_id, para poder sumar cantidad al reescanear
