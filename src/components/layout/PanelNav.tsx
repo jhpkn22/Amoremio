@@ -60,7 +60,7 @@ const grupos: Grupo[] = [
     items: [
       { href: "/panel/stock", label: "Stock", icon: Boxes, primarioMobile: true },
       { href: "/panel/compras", label: "Compras", icon: Truck },
-      { href: "/panel/proveedores", label: "Proveedores", icon: Factory },
+      { href: "/panel/proveedores", label: "Proveedores", icon: Factory, listo: true },
     ],
   },
   {

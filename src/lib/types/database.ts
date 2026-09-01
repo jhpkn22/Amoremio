@@ -215,6 +215,37 @@ export interface ArticuloCosto {
   updated_by: string | null;
 }
 
+// ---------------------------------------------------------------------
+// Proveedores + su cuenta corriente (Fase 2)
+// ---------------------------------------------------------------------
+
+export type TipoMovProveedor = "deuda" | "pago";
+
+export interface Proveedor {
+  id: string;
+  nombre: string;
+  ruc: string | null;
+  telefono: string | null;
+  descripcion: string | null;
+  saldo: number;
+  activo: boolean;
+  created_at: string;
+  deleted_at: string | null;
+}
+
+export interface ProveedorMovimiento {
+  id: string;
+  proveedor_id: string;
+  tipo: TipoMovProveedor;
+  monto: number;
+  compra_id: string | null;
+  forma_pago: FormaPago | null;
+  saldo_resultante: number;
+  usuario_id: string;
+  notas: string | null;
+  created_at: string;
+}
+
 /** Item tal como vive en el carrito de la Caja, antes de confirmar la venta. */
 export interface ItemCarrito {
   clave: string; // producto_id + variante_id, para poder sumar cantidad al reescanear
