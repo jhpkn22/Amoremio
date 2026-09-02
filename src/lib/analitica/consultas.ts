@@ -14,7 +14,10 @@ export interface DatosAnalitica {
   totalVentas: number;
   cantVentas: number;
   ticketPromedio: number;
+  gananciaTotal: number;
+  itemsSinCosto: number;
   porMes: { etiqueta: string; valor: number }[];
+  porMesGanancia: { etiqueta: string; valor: number }[];
   porDiaSemana: { etiqueta: string; valor: number; destacado?: boolean }[];
   porHora: { etiqueta: string; valor: number; destacado?: boolean }[];
   ultimos30: { etiqueta: string; valor: number }[];
@@ -52,6 +55,7 @@ export async function cargarAnalitica(): Promise<DatosAnalitica> {
         subtotal_item: number;
         precio_unitario: number;
         articulo_id: string | null;
+        ventas: { created_at: string } | null;
         venta_item_costos: { costo_unitario: number } | null;
       }[]
     >();
@@ -75,6 +79,29 @@ export async function cargarAnalitica(): Promise<DatosAnalitica> {
     if (mapaMes.has(k)) mapaMes.set(k, (mapaMes.get(k) ?? 0) + v.total);
   }
   const porMes = [...mapaMes.entries()].map(([k, valor]) => {
+    const [, m] = k.split("-").map(Number);
+    return { etiqueta: MESES[m], valor };
+  });
+
+  // ganancia (venta − costo) por mes, desde los items con costo snapshot
+  const mapaGananciaMes = new Map<string, number>([...mapaMes.keys()].map((k) => [k, 0]));
+  let gananciaTotal = 0;
+  let itemsSinCosto = 0;
+  for (const it of its) {
+    const costo = it.venta_item_costos?.costo_unitario;
+    if (costo == null) {
+      itemsSinCosto++;
+      continue;
+    }
+    const margen = (it.precio_unitario - costo) * it.cantidad;
+    gananciaTotal += margen;
+    if (it.ventas?.created_at) {
+      const d = enPY(it.ventas.created_at);
+      const k = `${d.getFullYear()}-${d.getMonth()}`;
+      if (mapaGananciaMes.has(k)) mapaGananciaMes.set(k, (mapaGananciaMes.get(k) ?? 0) + margen);
+    }
+  }
+  const porMesGanancia = [...mapaGananciaMes.entries()].map(([k, valor]) => {
     const [, m] = k.split("-").map(Number);
     return { etiqueta: MESES[m], valor };
   });
@@ -149,7 +176,10 @@ export async function cargarAnalitica(): Promise<DatosAnalitica> {
     totalVentas,
     cantVentas,
     ticketPromedio: cantVentas ? Math.round(totalVentas / cantVentas) : 0,
+    gananciaTotal,
+    itemsSinCosto,
     porMes,
+    porMesGanancia,
     porDiaSemana,
     porHora,
     ultimos30,

@@ -35,10 +35,17 @@ export default async function GraficosPage() {
         </div>
       ) : (
         <>
-          <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Card>
-              <p className="text-[11.5px] font-semibold uppercase tracking-wide text-ink-600">Vendido (12 meses)</p>
+              <p className="text-[11.5px] font-semibold uppercase tracking-wide text-ink-600">Vendido en bruto (12m)</p>
               <p className="tabular text-[18px] font-bold text-ink-900">{formatGs(a.totalVentas)}</p>
+            </Card>
+            <Card>
+              <p className="text-[11.5px] font-semibold uppercase tracking-wide text-ink-600">Ganancia (venta − costo)</p>
+              <p className="tabular text-[18px] font-bold text-success">{formatGs(a.gananciaTotal)}</p>
+              <p className="text-[11px] text-ink-600">
+                {a.totalVentas > 0 ? `${Math.round((a.gananciaTotal / a.totalVentas) * 100)}% de margen` : ""}
+              </p>
             </Card>
             <Card>
               <p className="text-[11.5px] font-semibold uppercase tracking-wide text-ink-600">Ventas</p>
@@ -60,8 +67,17 @@ export default async function GraficosPage() {
 
           <div className="space-y-5">
             <Card>
-              <p className="mb-3 text-[14px] font-bold text-ink-900">Ventas por mes</p>
+              <p className="mb-3 text-[14px] font-bold text-ink-900">Vendido en bruto por mes</p>
               <BarrasVertical datos={a.porMes} formato={gsCorto} alto={200} />
+            </Card>
+
+            <Card>
+              <p className="mb-1 text-[14px] font-bold text-ink-900">Ganancia por mes (venta − costo)</p>
+              <p className="mb-3 text-[12.5px] text-ink-600">
+                Diferencia entre el precio de venta y el costo de cada artículo vendido.
+                {a.itemsSinCosto > 0 && ` ${a.itemsSinCosto} ítem(s) sin costo cargado no suman acá.`}
+              </p>
+              <BarrasVertical datos={a.porMesGanancia} formato={gsCorto} alto={200} />
             </Card>
 
             <Card>

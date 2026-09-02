@@ -57,7 +57,6 @@ export function TablaInteligencia({ filas }: { filas: FilaInteligencia[] }) {
 
       {BUCKETS.map(({ pct, titulo }) => {
         const grupo = filas.filter((f) => f.pct === pct);
-        if (grupo.length === 0) return null;
         const idsSinAplicar = grupo.filter((f) => f.descuento_pct !== pct).map((f) => f.id);
         return (
           <div key={pct} className="rounded-2xl border border-border bg-surface">
@@ -75,6 +74,9 @@ export function TablaInteligencia({ filas }: { filas: FilaInteligencia[] }) {
                 </Button>
               )}
             </div>
+            {grupo.length === 0 ? (
+              <p className="px-4 py-4 text-[12.5px] text-ink-600">Ningún artículo en este tramo por ahora.</p>
+            ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[620px] text-left text-[13px]">
                 <thead className="text-[11px] uppercase tracking-wide text-ink-600">
@@ -129,13 +131,14 @@ export function TablaInteligencia({ filas }: { filas: FilaInteligencia[] }) {
                 </tbody>
               </table>
             </div>
+            )}
           </div>
         );
       })}
 
-      {filas.every((f) => f.pct === 0) && (
+      {filas.length === 0 && (
         <p className="rounded-xl border border-border bg-surface p-6 text-center text-[13px] text-ink-600">
-          Ningún artículo pasa los 3 meses en stock todavía — nada para rebajar por ahora.
+          Todavía no hay artículos activos con stock para analizar.
         </p>
       )}
 
