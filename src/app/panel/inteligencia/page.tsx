@@ -76,6 +76,9 @@ export default async function InteligenciaPage() {
       const costo = a.articulo_costos?.precio_costo ?? null;
       const lista = a.precio_lista ?? a.precio_venta;
       const sugerido = pct > 0 ? Math.round((lista * (100 - pct)) / 100) : a.precio_venta;
+      const margenGs = costo !== null ? a.precio_venta - costo : null;
+      const margenPct =
+        margenGs !== null && a.precio_venta > 0 ? Math.round((margenGs / a.precio_venta) * 100) : null;
       return {
         id: a.id,
         nombre: a.nombre,
@@ -89,6 +92,8 @@ export default async function InteligenciaPage() {
         precio_sugerido: sugerido,
         descuento_pct: a.descuento_pct,
         vendido_90: vendido90.get(a.id) ?? 0,
+        margen_gs: margenGs,
+        margen_pct: margenPct,
       };
     })
     .sort((x, y) => y.dias - x.dias);
@@ -109,7 +114,35 @@ export default async function InteligenciaPage() {
       ratio: f.vendido_90 / f.stock,
     }))
     .sort((a, b) => a.ratio - b.ratio)
-    .slice(0, 5);
+    .slice(0, 30);
+
+  // Los que más rotan / más se venden (unidades vendidas en 90 días)
+  const masRotacion = filas
+    .filter((f) => f.vendido_90 > 0)
+    .map((f) => ({
+      etiqueta: f.nombre,
+      valor: f.vendido_90,
+      sub:
+        f.stock > 0
+          ? `${f.stock} en stock · ${(f.vendido_90 / f.stock).toFixed(1)} rotaciones en 90 días`
+          : `sin stock — se agotó`,
+    }))
+    .sort((a, b) => b.valor - a.valor)
+    .slice(0, 30);
+
+  // Los que mejor combinan ventas y margen (score 50% ventas + 50% margen %)
+  const candidatos = filas.filter((f) => f.vendido_90 > 0 && f.margen_pct !== null);
+  const maxVend = Math.max(1, ...candidatos.map((f) => f.vendido_90));
+  const maxMg = Math.max(1, ...candidatos.map((f) => f.margen_pct as number));
+  const mejoresProductos = candidatos
+    .map((f) => ({
+      etiqueta: f.nombre,
+      valor: f.margen_pct as number,
+      sub: `${f.vendido_90} vendidas · ${(f.margen_gs ?? 0).toLocaleString("es-PY")} Gs. de ganancia por unidad`,
+      score: (f.vendido_90 / maxVend) * 0.5 + ((f.margen_pct as number) / maxMg) * 0.5,
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 30);
 
   return (
     <div>
@@ -149,14 +182,34 @@ export default async function InteligenciaPage() {
 
       <TablaInteligencia filas={filas} />
 
-      <Card className="mt-6">
-        <p className="mb-1 text-[14px] font-bold text-ink-900">Lectura inteligente</p>
-        <p className="mb-3 text-[13px] text-ink-600">
-          Los 5 artículos que menos rotan (stock alto vs. ventas de los últimos 90 días). Son candidatos a promo,
-          combo o a frenar la recompra.
-        </p>
-        <BarrasHorizontal datos={lentaRotacion} formato={(n) => `${n} u.`} />
-      </Card>
+      <div className="mt-6 space-y-5">
+        <Card>
+          <p className="mb-1 text-[14px] font-bold text-ink-900">Los que menos rotan</p>
+          <p className="mb-3 text-[13px] text-ink-600">
+            Hasta 30 artículos ordenados por menor rotación (stock alto vs. ventas de los últimos 90 días).
+            Candidatos a promo, combo o a frenar la recompra.
+          </p>
+          <BarrasHorizontal datos={lentaRotacion} formato={(n) => `${n} en stock`} />
+        </Card>
+
+        <Card>
+          <p className="mb-1 text-[14px] font-bold text-ink-900">Los que más rotan y se venden</p>
+          <p className="mb-3 text-[13px] text-ink-600">
+            Hasta 30 artículos con más unidades vendidas en los últimos 90 días. Son los que conviene tener
+            siempre en stock.
+          </p>
+          <BarrasHorizontal datos={masRotacion} formato={(n) => `${n} vendidas`} />
+        </Card>
+
+        <Card>
+          <p className="mb-1 text-[14px] font-bold text-ink-900">Mejores productos (ventas + margen)</p>
+          <p className="mb-3 text-[13px] text-ink-600">
+            Combina cuánto se vende con qué % de ganancia deja (mitad y mitad). Los de arriba son los que más
+            plata te dejan sin esforzarte en venderlos.
+          </p>
+          <BarrasHorizontal datos={mejoresProductos} formato={(n) => `${n}% margen`} />
+        </Card>
+      </div>
     </div>
   );
 }

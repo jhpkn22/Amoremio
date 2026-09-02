@@ -20,6 +20,8 @@ export interface FilaInteligencia {
   precio_sugerido: number;
   descuento_pct: number;
   vendido_90: number;
+  margen_gs: number | null;
+  margen_pct: number | null;
 }
 
 const BUCKETS: { pct: 10 | 15 | 20 | 25; titulo: string }[] = [
