@@ -17,6 +17,7 @@ import { BusquedaManual } from "./BusquedaManual";
 import { CarritoVenta } from "./CarritoVenta";
 import { PanelCobro } from "./PanelCobro";
 import { ModalCobro } from "./ModalCobro";
+import { PantallaImpresion } from "./PantallaImpresion";
 import { EstadoConexion } from "./EstadoConexion";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -38,8 +39,9 @@ export function PosCliente({ turno, almacenId, usuarioNombre, esAdmin }: Props) 
   const [mostrarCamara, setMostrarCamara] = useState(false);
   const [mostrarCobro, setMostrarCobro] = useState(false);
   const [aviso, setAviso] = useState<Aviso>(null);
-  const [confirmando, setConfirmando] = useState(false);
+  const [fase, setFase] = useState<null | "registrando" | "imprimiendo">(null);
   const [config, setConfig] = useState<{ ruta: RutaImpresion; ticket: ConfigTicket } | null>(null);
+  const confirmando = fase !== null;
 
   useEffect(() => {
     cargarConfiguracionCaja(supabase).then((c) => setConfig({ ruta: c.rutaImpresion, ticket: c.configTicket }));
@@ -70,7 +72,7 @@ export function PosCliente({ turno, almacenId, usuarioNombre, esAdmin }: Props) 
 
   async function cobrar() {
     if (confirmando) return;
-    setConfirmando(true);
+    setFase("registrando");
     setAviso(null);
     try {
       const cfg = config ?? { ruta: "web_bluetooth" as RutaImpresion, ticket: { anchoMm: 58 as const, charsPorLinea: 32 } };
@@ -92,6 +94,7 @@ export function PosCliente({ turno, almacenId, usuarioNombre, esAdmin }: Props) 
 
       let avisoImpresion = "";
       try {
+        setFase("imprimiendo");
         await imprimir(resultado.ticketBytes, cfg.ruta);
       } catch (e) {
         avisoImpresion =
@@ -115,7 +118,7 @@ export function PosCliente({ turno, almacenId, usuarioNombre, esAdmin }: Props) 
     } catch (e) {
       setAviso({ tipo: "error", texto: e instanceof Error ? e.message : "No se pudo registrar la venta. Intentá de nuevo." });
     } finally {
-      setConfirmando(false);
+      setFase(null);
     }
   }
 
@@ -220,6 +223,7 @@ export function PosCliente({ turno, almacenId, usuarioNombre, esAdmin }: Props) 
           onConfirmar={cobrar}
         />
       )}
+      {fase && <PantallaImpresion fase={fase} />}
     </div>
   );
 }
